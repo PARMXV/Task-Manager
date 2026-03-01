@@ -1,4 +1,4 @@
-// Sidebar - desktop navigation with branding, nav links, theme toggle, and logout
+// Sidebar – desktop navigation (w-64) with logo, nav links, user card, theme toggle, logout
 import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, CheckSquare, LogOut, Sun, Moon, Zap } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 
 const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/tasks', icon: CheckSquare, label: 'Tasks' },
+    { to: '/tasks', icon: CheckSquare, label: 'Mis Tareas' },
 ];
 
 export default function Sidebar() {
@@ -19,38 +19,58 @@ export default function Sidebar() {
         try {
             await logout();
             navigate('/login');
-            toast.success('Logged out successfully');
+            toast.success('Sesión cerrada');
         } catch {
-            toast.error('Failed to logout');
+            toast.error('Error al cerrar sesión');
         }
     }
 
+    const initial = (currentUser?.displayName?.[0] || currentUser?.email?.[0] || 'U').toUpperCase();
+
     return (
-        <div className="w-64 h-screen flex flex-col bg-slate-900 dark:bg-slate-900 bg-slate-100 border-r border-slate-700 dark:border-slate-700 border-slate-200">
-            {/* Logo / Branding */}
-            <div className="px-6 py-6 border-b border-slate-800 dark:border-slate-800 border-slate-200">
+        <div
+            className="w-64 h-screen flex flex-col flex-shrink-0 sticky top-0"
+            style={{
+                background: 'var(--bg-surface)',
+                borderRight: '1px solid var(--border)',
+            }}
+        >
+            {/* ── Brand ── */}
+            <div className="px-5 py-6" style={{ borderBottom: '1px solid var(--border)' }}>
                 <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                    <div className="ring-pulse w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
                         <Zap className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                        <h1 className="font-bold text-lg text-white dark:text-white text-slate-900">TaskFlow</h1>
-                        <p className="text-xs text-slate-400">Cloud Task Manager</p>
+                        <p className="font-bold text-base leading-tight" style={{ color: 'var(--text-primary)' }}>
+                            TaskFlow
+                        </p>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Cloud Task Manager</p>
                     </div>
                 </div>
             </div>
 
-            {/* Navigation Links */}
-            <nav className="flex-1 px-3 py-4 space-y-1">
+            {/* ── Nav links ── */}
+            <nav className="flex-1 px-3 py-5 space-y-1">
                 {navItems.map(({ to, icon: Icon, label }) => (
                     <NavLink
                         key={to}
                         to={to}
                         className={({ isActive }) =>
-                            `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${isActive
-                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                                : 'text-slate-400 hover:text-white hover:bg-slate-800 dark:hover:bg-slate-800 hover:bg-slate-200'
+                            `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${isActive ? 'active-nav' : 'inactive-nav'
                             }`
+                        }
+                        style={({ isActive }) =>
+                            isActive
+                                ? {
+                                    background: 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(167,139,250,0.15))',
+                                    color: '#a5b4fc',
+                                    border: '1px solid rgba(99,102,241,0.3)',
+                                }
+                                : {
+                                    color: 'var(--text-secondary)',
+                                    border: '1px solid transparent',
+                                }
                         }
                     >
                         <Icon className="w-5 h-5" />
@@ -59,37 +79,47 @@ export default function Sidebar() {
                 ))}
             </nav>
 
-            {/* User info + controls */}
-            <div className="px-3 py-4 border-t border-slate-800 dark:border-slate-800 border-slate-200 space-y-2">
+            {/* ── User card + controls ── */}
+            <div className="px-3 py-4 space-y-1" style={{ borderTop: '1px solid var(--border)' }}>
                 {/* User info */}
-                <div className="px-3 py-2 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
-                        {currentUser?.displayName?.[0]?.toUpperCase() || currentUser?.email?.[0]?.toUpperCase() || 'U'}
+                <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1 glass">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                        {initial}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white dark:text-white text-slate-900 truncate">
-                            {currentUser?.displayName || 'User'}
+                        <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                            {currentUser?.displayName || 'Usuario'}
                         </p>
-                        <p className="text-xs text-slate-500 truncate">{currentUser?.email}</p>
+                        <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                            {currentUser?.email}
+                        </p>
                     </div>
                 </div>
 
                 {/* Theme toggle */}
                 <button
                     onClick={toggleTheme}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-slate-800 dark:hover:bg-slate-800 hover:bg-slate-200 transition-all"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all"
+                    style={{ color: 'var(--text-secondary)' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
-                    {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                    {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                    {theme === 'dark'
+                        ? <Sun className="w-4 h-4 text-amber-400" />
+                        : <Moon className="w-4 h-4 text-indigo-400" />}
+                    {theme === 'dark' ? 'Modo Claro' : 'Modo Oscuro'}
                 </button>
 
                 {/* Logout */}
                 <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all"
+                    style={{ color: 'var(--text-muted)' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.color = '#f87171'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
                 >
                     <LogOut className="w-4 h-4" />
-                    Sign Out
+                    Cerrar Sesión
                 </button>
             </div>
         </div>

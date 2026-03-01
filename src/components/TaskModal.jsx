@@ -1,8 +1,13 @@
-// TaskModal – add or edit a task, shown as an overlay dialog
+// TaskModal – add/edit task dialog with title, description, category, and due date
 import { useState, useEffect } from 'react';
 import { X, Zap } from 'lucide-react';
 
-const CATEGORIES = ['work', 'personal', 'study', 'other'];
+const CATEGORIES = [
+    { value: 'work', label: 'Trabajo' },
+    { value: 'personal', label: 'Personal' },
+    { value: 'study', label: 'Estudio' },
+    { value: 'other', label: 'Otro' },
+];
 
 export default function TaskModal({ isOpen, onClose, onSave, initialData }) {
     const [title, setTitle] = useState('');
@@ -11,7 +16,7 @@ export default function TaskModal({ isOpen, onClose, onSave, initialData }) {
     const [dueDate, setDueDate] = useState('');
     const [saving, setSaving] = useState(false);
 
-    // Populate fields when editing an existing task
+    /* Populate fields when editing an existing task */
     useEffect(() => {
         if (initialData) {
             setTitle(initialData.title || '');
@@ -22,9 +27,7 @@ export default function TaskModal({ isOpen, onClose, onSave, initialData }) {
                     ? initialData.dueDate.toDate()
                     : new Date(initialData.dueDate);
                 setDueDate(d.toISOString().split('T')[0]);
-            } else {
-                setDueDate('');
-            }
+            } else { setDueDate(''); }
         } else {
             setTitle(''); setDescription(''); setCategory('personal'); setDueDate('');
         }
@@ -46,19 +49,42 @@ export default function TaskModal({ isOpen, onClose, onSave, initialData }) {
         onClose();
     }
 
+    const inputStyle = {
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid var(--border)',
+        color: 'var(--text-primary)',
+        borderRadius: '12px',
+        padding: '10px 14px',
+        width: '100%',
+        fontSize: '14px',
+        outline: 'none',
+    };
+
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-            onClick={(e) => e.target === e.currentTarget && onClose()}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
+            onClick={e => e.target === e.currentTarget && onClose()}
         >
-            <div className="w-full max-w-md glass rounded-2xl p-6 shadow-2xl fade-in">
+            <div className="glass w-full max-w-md rounded-2xl p-6 shadow-2xl fade-in">
+
                 {/* Header */}
                 <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-2">
-                        <Zap className="w-5 h-5 text-indigo-400" />
-                        <h2 className="font-semibold text-white">{initialData ? 'Edit Task' : 'New Task'}</h2>
+                        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                            <Zap className="w-3.5 h-3.5 text-white" />
+                        </div>
+                        <h2 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+                            {initialData ? 'Editar Tarea' : 'Nueva Tarea'}
+                        </h2>
                     </div>
-                    <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-700 transition-all">
+                    <button
+                        onClick={onClose}
+                        className="p-1.5 rounded-lg transition-all"
+                        style={{ color: 'var(--text-muted)' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                    >
                         <X className="w-4 h-4" />
                     </button>
                 </div>
@@ -66,46 +92,64 @@ export default function TaskModal({ isOpen, onClose, onSave, initialData }) {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {/* Title */}
                     <div>
-                        <label className="block text-sm text-slate-400 mb-1">Title *</label>
+                        <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                            Título *
+                        </label>
                         <input
                             id="task-title"
-                            type="text" value={title} onChange={(e) => setTitle(e.target.value)}
-                            required placeholder="What needs to be done?"
-                            className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm"
+                            type="text" value={title} onChange={e => setTitle(e.target.value)}
+                            required placeholder="¿Qué necesitas hacer?"
+                            style={inputStyle}
+                            onFocus={e => e.target.style.border = '1px solid var(--accent)'}
+                            onBlur={e => e.target.style.border = '1px solid var(--border)'}
                         />
                     </div>
 
                     {/* Description */}
                     <div>
-                        <label className="block text-sm text-slate-400 mb-1">Description</label>
+                        <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                            Descripción
+                        </label>
                         <textarea
                             id="task-description"
-                            value={description} onChange={(e) => setDescription(e.target.value)}
-                            placeholder="Add more details…" rows={3}
-                            className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm resize-none"
+                            value={description} onChange={e => setDescription(e.target.value)}
+                            placeholder="Agrega más detalles…" rows={3}
+                            style={{ ...inputStyle, resize: 'none', fontFamily: 'inherit' }}
+                            onFocus={e => e.target.style.border = '1px solid var(--accent)'}
+                            onBlur={e => e.target.style.border = '1px solid var(--border)'}
                         />
                     </div>
 
-                    {/* Category + Due date row */}
+                    {/* Category + Due date */}
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-sm text-slate-400 mb-1">Category</label>
+                            <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                                Categoría
+                            </label>
                             <select
                                 id="task-category"
-                                value={category} onChange={(e) => setCategory(e.target.value)}
-                                className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-500 text-sm capitalize"
+                                value={category} onChange={e => setCategory(e.target.value)}
+                                style={{ ...inputStyle, cursor: 'pointer' }}
+                                onFocus={e => e.target.style.border = '1px solid var(--accent)'}
+                                onBlur={e => e.target.style.border = '1px solid var(--border)'}
                             >
-                                {CATEGORIES.map((c) => (
-                                    <option key={c} value={c} className="capitalize">{c}</option>
+                                {CATEGORIES.map(c => (
+                                    <option key={c.value} value={c.value} style={{ background: '#15152a' }}>
+                                        {c.label}
+                                    </option>
                                 ))}
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm text-slate-400 mb-1">Due Date</label>
+                            <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                                Fecha límite
+                            </label>
                             <input
                                 id="task-due"
-                                type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
-                                className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-500 text-sm [color-scheme:dark]"
+                                type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
+                                style={{ ...inputStyle, colorScheme: 'dark' }}
+                                onFocus={e => e.target.style.border = '1px solid var(--accent)'}
+                                onBlur={e => e.target.style.border = '1px solid var(--border)'}
                             />
                         </div>
                     </div>
@@ -114,16 +158,20 @@ export default function TaskModal({ isOpen, onClose, onSave, initialData }) {
                     <div className="flex gap-2 pt-1">
                         <button
                             type="button" onClick={onClose}
-                            className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 transition-all text-sm"
+                            className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all"
+                            style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)', background: 'transparent' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >
-                            Cancel
+                            Cancelar
                         </button>
                         <button
-                            type="submit" disabled={saving || !title.trim()}
-                            id="task-save"
-                            className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-medium transition-all shadow-lg shadow-indigo-600/30 disabled:opacity-50 text-sm"
+                            type="submit" disabled={saving || !title.trim()} id="task-save"
+                            className="glow-btn flex-1 py-2.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all"
+                            style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', opacity: (!title.trim() ? 0.5 : 1) }}
                         >
-                            {saving ? 'Saving…' : initialData ? 'Save Changes' : 'Add Task'}
+                            {saving ? <span className="spinner" /> : null}
+                            {saving ? 'Guardando…' : initialData ? 'Guardar cambios' : 'Agregar tarea'}
                         </button>
                     </div>
                 </form>

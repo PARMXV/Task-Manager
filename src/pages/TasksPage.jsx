@@ -1,16 +1,27 @@
-// TasksPage - main task management view with real-time list, filter, search, and CRUD
+// TasksPage – main task management view with real-time list, filters, search, and CRUD
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, SlidersHorizontal, CheckCircle2, Clock, List } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { subscribeToTasks, addTask, updateTask, deleteTask, toggleTask } from '../firebase/taskService';
-import { subscribeToUserProfile, awardXP } from '../firebase/userService';
+import { awardXP } from '../firebase/userService';
 import TaskCard from '../components/TaskCard';
 import TaskModal from '../components/TaskModal';
 import toast from 'react-hot-toast';
 
-const FILTERS = ['all', 'pending', 'completed'];
-const CATEGORIES = ['all', 'work', 'personal', 'study', 'other'];
+const STATUS_FILTERS = [
+    { value: 'all', label: 'Todas', icon: List },
+    { value: 'pending', label: 'Pendientes', icon: Clock },
+    { value: 'completed', label: 'Completadas', icon: CheckCircle2 },
+];
+
+const CATEGORY_FILTERS = [
+    { value: 'all', label: 'Todas las categorías' },
+    { value: 'work', label: '💼 Trabajo' },
+    { value: 'personal', label: '👤 Personal' },
+    { value: 'study', label: '📚 Estudio' },
+    { value: 'other', label: '📌 Otro' },
+];
 
 export default function TasksPage() {
     const { currentUser } = useAuth();
@@ -23,63 +34,50 @@ export default function TasksPage() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState(null);
 
-    // Open "add task" modal if linked from dashboard with ?new=1
+    /* Open "add task" modal if linked from dashboard with ?new=1 */
     useEffect(() => {
         if (searchParams.get('new') === '1') setModalOpen(true);
     }, [searchParams]);
 
-    // Real-time tasks subscription
+    /* Real-time tasks subscription */
     useEffect(() => {
         if (!currentUser) return;
-        const unsub = subscribeToTasks(currentUser.uid, setTasks);
-        return unsub;
+        return subscribeToTasks(currentUser.uid, setTasks);
     }, [currentUser]);
 
-    // --- CRUD handlers ---
+    /* ── CRUD handlers ── */
 
     async function handleSave(data) {
         try {
             if (editingTask) {
-                // Update existing task
                 await updateTask(editingTask.id, data);
-                toast.success('Task updated ✅');
+                toast.success('Tarea actualizada ✅');
             } else {
-                // Add new task
                 await addTask(currentUser.uid, data);
-                toast.success('Task added! +10 XP on completion 🎯');
+                toast.success('¡Tarea agregada! +10 XP al completarla ⚡');
             }
-        } catch {
-            toast.error('Something went wrong');
-        }
+        } catch { toast.error('Error al guardar tarea'); }
         setEditingTask(null);
     }
 
     const handleToggle = useCallback(async (task) => {
         try {
-            // Toggle completed and check if XP should be awarded
             const shouldAward = await toggleTask(task.id, task.completed, task.xpAwarded);
             if (shouldAward) {
-                // Mark xpAwarded on task and update user XP
                 await updateTask(task.id, { xpAwarded: true });
                 await awardXP(currentUser.uid);
-                toast.success('+10 XP earned! 🎉', { icon: '⚡' });
+                toast.success('¡+10 XP ganados! 🎉', { icon: '⚡' });
             }
-            if (!task.completed) {
-                toast.success('Task completed!', { icon: '✅' });
-            }
-        } catch {
-            toast.error('Failed to update task');
-        }
+            if (!task.completed) toast.success('¡Tarea completada!', { icon: '✅' });
+        } catch { toast.error('Error al actualizar tarea'); }
     }, [currentUser]);
 
-    async function handleDelete(taskId) {
+    const handleDelete = async (taskId) => {
         try {
             await deleteTask(taskId);
-            toast.success('Task deleted');
-        } catch {
-            toast.error('Failed to delete task');
-        }
-    }
+            toast.success('Tarea eliminada');
+        } catch { toast.error('Error al eliminar tarea'); }
+    };
 
     function handleEdit(task) {
         setEditingTask(task);
@@ -91,8 +89,8 @@ export default function TasksPage() {
         setEditingTask(null);
     }
 
-    // --- Filtering ---
-    const filtered = tasks.filter((t) => {
+    /* ── Filtering ── */
+    const filtered = tasks.filter(t => {
         if (filter === 'pending' && t.completed) return false;
         if (filter === 'completed' && !t.completed) return false;
         if (catFilter !== 'all' && t.category !== catFilter) return false;
@@ -103,85 +101,103 @@ export default function TasksPage() {
         return true;
     });
 
-    const pendingCount = tasks.filter((t) => !t.completed).length;
-    const completedCount = tasks.filter((t) => t.completed).length;
+    const pending = tasks.filter(t => !t.completed).length;
+    const completed = tasks.filter(t => t.completed).length;
 
     return (
-        <div className="p-6 max-w-3xl mx-auto space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between fade-in">
+        <div className="p-6 max-w-3xl mx-auto space-y-5">
+
+            {/* ── Header ── */}
+            <div className="flex items-center justify-between flex-wrap gap-3 fade-in">
                 <div>
-                    <h2 className="text-2xl font-bold text-white">My Tasks</h2>
-                    <p className="text-slate-400 text-sm mt-0.5">
-                        {pendingCount} pending · {completedCount} completed
+                    <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Mis Tareas</h2>
+                    <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        {pending} pendientes · {completed} completadas
                     </p>
                 </div>
                 <button
                     id="add-task-btn"
                     onClick={() => { setEditingTask(null); setModalOpen(true); }}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-medium text-sm transition-all shadow-lg shadow-indigo-600/30"
+                    className="glow-btn flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
+                    style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
                 >
-                    <Plus className="w-4 h-4" /> Add Task
+                    <Plus className="w-4 h-4" strokeWidth={2.5} />
+                    Nueva tarea
                 </button>
             </div>
 
-            {/* Search bar */}
+            {/* ── Search bar ── */}
             <div className="relative fade-in">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
                 <input
                     id="task-search"
-                    type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search tasks…"
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 text-sm"
+                    type="text" value={search} onChange={e => setSearch(e.target.value)}
+                    placeholder="Buscar tareas…"
+                    className="w-full text-sm pl-10 pr-4 py-3 rounded-xl outline-none transition-all"
+                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                    onFocus={e => e.target.style.border = '1px solid var(--accent)'}
+                    onBlur={e => e.target.style.border = '1px solid var(--border)'}
                 />
             </div>
 
-            {/* Status filter tabs */}
+            {/* ── Status filter tabs ── */}
             <div className="flex gap-2 fade-in">
-                {FILTERS.map((f) => (
+                {STATUS_FILTERS.map(({ value, label, icon: Icon }) => (
                     <button
-                        key={f}
-                        id={`filter-${f}`}
-                        onClick={() => setFilter(f)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${filter === f
-                                ? 'bg-indigo-600 text-white shadow shadow-indigo-600/30'
-                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                            }`}
+                        key={value}
+                        id={`filter-${value}`}
+                        onClick={() => setFilter(value)}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+                        style={
+                            filter === value
+                                ? { background: 'linear-gradient(135deg,rgba(99,102,241,0.3),rgba(139,92,246,0.2))', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.4)' }
+                                : { background: 'transparent', color: 'var(--text-muted)', border: '1px solid transparent' }
+                        }
+                        onMouseEnter={e => filter !== value && (e.currentTarget.style.background = 'var(--bg-hover)')}
+                        onMouseLeave={e => filter !== value && (e.currentTarget.style.background = 'transparent')}
                     >
-                        {f}
+                        <Icon className="w-3.5 h-3.5" />
+                        {label}
                     </button>
                 ))}
             </div>
 
-            {/* Category filter chips */}
-            <div className="flex gap-2 flex-wrap fade-in">
-                <Filter className="w-4 h-4 text-slate-500 self-center" />
-                {CATEGORIES.map((c) => (
+            {/* ── Category filter ── */}
+            <div className="flex items-center gap-2 flex-wrap fade-in">
+                <SlidersHorizontal className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                {CATEGORY_FILTERS.map(({ value, label }) => (
                     <button
-                        key={c}
-                        id={`cat-${c}`}
-                        onClick={() => setCatFilter(c)}
-                        className={`px-3 py-1 rounded-full text-xs font-medium capitalize border transition-all ${catFilter === c
-                                ? 'bg-purple-600 text-white border-purple-600'
-                                : 'text-slate-400 border-slate-700 hover:border-slate-500'
-                            }`}
+                        key={value}
+                        id={`cat-${value}`}
+                        onClick={() => setCatFilter(value)}
+                        className="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
+                        style={
+                            catFilter === value
+                                ? { background: 'rgba(167,139,250,0.2)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.4)' }
+                                : { background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+                        }
                     >
-                        {c}
+                        {label}
                     </button>
                 ))}
             </div>
 
-            {/* Task list */}
+            {/* ── Task list ── */}
             {filtered.length === 0 ? (
-                <div className="text-center py-16 text-slate-600 fade-in">
-                    <div className="text-4xl mb-3">🎉</div>
-                    <p className="font-medium text-slate-400">
-                        {tasks.length === 0 ? 'No tasks yet – add one!' : 'No tasks match your filter'}
+                <div className="text-center py-20 fade-in">
+                    <div className="text-5xl mb-4">{tasks.length === 0 ? '🚀' : '🔍'}</div>
+                    <p className="font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                        {tasks.length === 0 ? '¡Agrega tu primera tarea!' : 'Sin resultados para este filtro'}
+                    </p>
+                    <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+                        {tasks.length === 0
+                            ? 'Pulsa "Nueva tarea" para comenzar'
+                            : 'Intenta con otros filtros o texto de búsqueda'}
                     </p>
                 </div>
             ) : (
-                <div className="space-y-3">
-                    {filtered.map((task) => (
+                <div className="space-y-2.5">
+                    {filtered.map(task => (
                         <TaskCard
                             key={task.id}
                             task={task}

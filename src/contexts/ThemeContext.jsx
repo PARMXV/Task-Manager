@@ -1,25 +1,25 @@
-// Theme Context - manages light/dark mode with localStorage persistence
+// ThemeContext – manages dark/light mode via CSS class on <html>
+// Default: dark. Toggle applies 'light' class instead of removing 'dark'.
 import { createContext, useContext, useEffect, useState } from 'react';
 
 const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
-    const [theme, setTheme] = useState(() => {
-        return localStorage.getItem('theme') || 'dark';
-    });
+    const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
 
     useEffect(() => {
         localStorage.setItem('theme', theme);
-        if (theme === 'dark') {
-            document.documentElement.classList.add('dark');
+        const root = document.documentElement;
+        if (theme === 'light') {
+            root.classList.add('light');
+            root.classList.remove('dark');
         } else {
-            document.documentElement.classList.remove('dark');
+            root.classList.add('dark');
+            root.classList.remove('light');
         }
     }, [theme]);
 
-    function toggleTheme() {
-        setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
-    }
+    const toggleTheme = () => setTheme(t => (t === 'dark' ? 'light' : 'dark'));
 
     return (
         <ThemeContext.Provider value={{ theme, toggleTheme }}>
