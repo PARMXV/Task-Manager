@@ -42,7 +42,11 @@ export default function TasksPage() {
     /* Real-time tasks subscription */
     useEffect(() => {
         if (!currentUser) return;
-        return subscribeToTasks(currentUser.uid, setTasks);
+        return subscribeToTasks(
+            currentUser.uid,
+            setTasks,
+            () => toast.error('Error de sincronización en tiempo real')
+        );
     }, [currentUser]);
 
     /* ── CRUD handlers ── */

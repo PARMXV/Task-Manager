@@ -58,7 +58,11 @@ export default function DashboardPage() {
     /* Real-time subscriptions */
     useEffect(() => {
         if (!currentUser) return;
-        return subscribeToTasks(currentUser.uid, setTasks);
+        return subscribeToTasks(
+            currentUser.uid,
+            setTasks,
+            (err) => console.error('[Dashboard] tasks listener failed:', err)
+        );
     }, [currentUser]);
 
     useEffect(() => {

@@ -7,7 +7,6 @@ import {
     doc,
     query,
     where,
-    orderBy,
     onSnapshot,
     serverTimestamp,
 } from 'firebase/firestore';
@@ -18,22 +17,37 @@ const TASKS_COLLECTION = 'tasks';
 /**
  * Subscribe to a user's tasks in real-time.
  * Calls `callback` with the current task array whenever Firestore updates.
+ * Calls `onError` if the listener fails (e.g. missing index or permissions).
  * Returns an unsubscribe function to stop listening.
+ *
+ * NOTE: orderBy is done client-side to avoid requiring a composite Firestore
+ * index, which is the most common cause of silent real-time sync failures
+ * in production/Vercel deployments.
  */
-export function subscribeToTasks(userId, callback) {
+export function subscribeToTasks(userId, callback, onError) {
     const q = query(
         collection(db, TASKS_COLLECTION),
-        where('userId', '==', userId),
-        orderBy('createdAt', 'desc')
+        where('userId', '==', userId)
     );
 
-    return onSnapshot(q, (snapshot) => {
-        const tasks = snapshot.docs.map((docSnap) => ({
-            id: docSnap.id,
-            ...docSnap.data(),
-        }));
-        callback(tasks);
-    });
+    return onSnapshot(
+        q,
+        (snapshot) => {
+            const tasks = snapshot.docs
+                .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+                // Sort newest-first on the client (no composite index needed)
+                .sort((a, b) => {
+                    const ta = a.createdAt?.toMillis?.() ?? 0;
+                    const tb = b.createdAt?.toMillis?.() ?? 0;
+                    return tb - ta;
+                });
+            callback(tasks);
+        },
+        (error) => {
+            console.error('[subscribeToTasks] Firestore error:', error);
+            if (onError) onError(error);
+        }
+    );
 }
 
 /**
